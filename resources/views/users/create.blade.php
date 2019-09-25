@@ -1,7 +1,7 @@
 @extends("layouts.default")
 
 @section("content")
-    关于
+    注册
     @stop
 
-@section("title","关于")
+@section("title","注册")
