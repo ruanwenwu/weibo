@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\User;
+use Mail;
+use Auth;
 
 class UsersController extends Controller
 {
@@ -11,7 +13,7 @@ class UsersController extends Controller
     {
         $this->middleware('auth',[
             'except'    =>  [
-                'show','create','store','index'
+                'show','create','store','index','confirmEmail'
             ],
         ]);
 
@@ -52,9 +54,8 @@ class UsersController extends Controller
             'email' =>  $request->email,
             'password'=>bcrypt($request->password),
         ]);
-
-        session()->flash('success','注册成功');
-
+        $this->sendConfirmMailToUser($user);
+        session()->flash('success','注册成功，请登陆您的注册邮箱验证完成注册');
         return redirect()->route("users.show",[$user]);
     }
 
@@ -96,4 +97,34 @@ class UsersController extends Controller
         session()->flash('info','删除成功');
         return back();
     }
+
+    /**
+     * 验证注册用户
+     */
+    public function confirmEmail($token){
+        $user = User::where("activation_token",$token)->firstOrFail();
+        $user->activation_token = null;
+        $user->activated = true;
+        $user->save();
+        session()->flash('success','验证成功！');
+        Auth::login($user);
+        return redirect()->route('users.show',compact('user'));
+    }
+
+    /**
+     * 发送注册验证邮件到用户
+     */
+    private function sendConfirmMailToUser(User $user){
+        $view = 'emails.confirm';
+        $data = compact('user');
+        $name = 'ruanwenwu';
+        $from = '379879523@qq.com';
+        $to   = $user->email;
+        $subject = '感谢注册微博，请验证您的邮箱';
+        Mail::send($view,$data,function($message) use ($from,$name,$to,$subject){
+            $message->to($to)->subject($subject);
+        });
+
+    }
+
 }
